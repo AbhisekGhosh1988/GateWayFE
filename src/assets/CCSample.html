@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>BluePay Encryption &amp; Tokenization</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+
+	<!--
+	HTML INSTRUCTIONS
+	====================================
+	Place data-encrypted-name="INPUT_NAME" attribute on all form controls to be encrypted. See below for acceptable values.
+	Do not include name="" attribute on form controls with data-encrypted-name="":
+	
+		CREDIT CARDS
+		====================================
+		Card Number
+		data-encrypted-name="CARD_ACCOUNT"
+
+		Security Code
+		data-encrypted-name="CARD_CVV2"
+
+		2 digit month
+		data-encrypted-name="EXPMO"
+
+		2 digit year
+		data-encrypted-name="EXPYR"
+
+		4 digit date: MMYY
+		data-encrypted-name="CARD_EXPIRE"
+
+		ACH
+		====================================
+		Checking or Savings: C/S
+		data-encrypted-name="ACH_ACCOUNT_TYPE"
+
+		Account Number
+		data-encrypted-name="ACH_ACCOUNT"
+
+		Routing Number
+		data-encrypted-name="ACH_ROUTING"
+	-->	
+
+	<!-- Set "action" to URL of script on merchant's web server that will receive token. -->
+	<form id="payment-form" method="" class="form" action="http://localhost:4200/">
+	    <input type="hidden" name="MODE" value="LIVE">
+		
+		<fieldset>
+			<legend>Your Info</legend>
+			<p>
+				<label for="NAME1">Name</label><br>
+				<input type="text" id="NAME1" name="NAME1" value="John"><br>
+				<input type="text" id="NAME2" name="NAME2" value="Doe">
+			</p>		
+		</fieldset>
+
+		<fieldset>
+			<legend>Credit Info</legend>
+			<p>
+				<label for="AMOUNT">Amount</label><br>
+				<input type="text" id="AMOUNT" name="AMOUNT" value="1.00">				
+			</p>			
+			<p>
+				<label for="CARD_ACCOUNT">Credit Card Number</label><br>
+				<input type="text" id="CARD_ACCOUNT" data-encrypted-name="CARD_ACCOUNT" value="4111111111111111">
+			</p>
+			<p>
+				<label for="CARD_CVV2">CVV Code</label><br>
+				<input type="text" id="CARD_CVV2" data-encrypted-name="CARD_CVV2" value="123">
+			</p>
+			<p>
+				<label for="EXPMO">Month</label>
+				<select id="EXPMO" data-encrypted-name="EXPMO">
+					<option value="01">01</option>
+					<option value="02">02</option>
+					<option value="03">03</option>
+					<option value="04">04</option>
+					<option value="05">05</option>
+					<option value="06">06</option>
+					<option value="07">07</option>
+					<option value="08">08</option>
+					<option value="09">09</option>
+					<option value="10">10</option>
+					<option value="11">11</option>
+					<option value="12">12</option>
+				</select>
+
+				<label for="EXPYR">Year</label>
+				<select data-encrypted-name="EXPYR" id="EXPYR">													
+					<option value="16">2016</option>
+					<option value="17">2017</option>
+					<option value="18">2018</option>
+					<option value="19">2019</option>
+					<option value="20">2020</option>
+					<option value="21">2021</option>
+					<option value="22">2022</option>
+					<option value="23">2023</option>
+					<option value="24">2024</option>
+					<option value="25">2025</option>
+					<option value="26">2026</option>
+				</select>
+			</p>
+		</fieldset>
+
+		<p><button type="submit">Submit</button></p>
+		<div class="form-response"></div>
+	</form>
+
+	<!-- [if using jquery: not required to use BluePay API] -->
+	<script type="text/javascript" src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+	<!-- [@end if using jquery] -->
+
+	<!-- [production] -->
+	<script type="text/javascript" src="https://secure.bluepay.com/v3/bluepay.js"></script>
+	<!-- [@end production] -->
+	
+	<script type="text/javascript">
+	
+		jQuery(function($) {
+
+		    /* BluePay Set Credentials for Encryption & Tokenization
+		     * Identifies Account ID & API Signature
+			 * @param {string} accountID (required) - Account ID
+			 * @param {string} apiSignature (required) - API Signature
+			 *
+			 * BluePay.setCredentials(accountID, apiSignature);
+			 *
+			 * ========================================
+			 */		     
+		    BluePay.setCredentials("100879920079", "65d07827026ef4f51afe3a01c3883b2f");
+			
+		    /* BluePay Callback 
+		     * Function is called after BluePay.createToken completes
+		     * @param {object} response - json response from api call		    
+		     * @param {string} error - if unable to connect to api 
+			 * ========================================
+		     */	 						 
+			var callback = function(response, error) {
+				// cache form id
+				var $form = $('#payment-form');
+				// show response
+				if (error) {
+					// if unable to connect to api
+					$form.find('.form-response').text(error);
+				} else {
+					if (response.STATUS !== '1') {
+						// Show form errors from api response
+						$form.find('.form-response').text(response.MESSAGE);			
+					} else {
+						// success message
+						$form.find('.form-response').text(response.MESSAGE);
+						// re-submit form to server
+						$form.get(0).submit();
+					}
+				}
+				// re-enable submit button
+				$form.find('button').prop('disabled', false);
+			};
+			
+			// Event Listener Creates Token on submit
+			$('#payment-form').on('submit',function(e) {
+				
+				// Prevent the form from submitting with the default action 
+				// also prevent form submit when js error is thrown
+				e.preventDefault();
+				
+				// cache form id
+				var $form = $(this);
+
+				// Disable the submit button to prevent repeated clicks
+				$form.find('button').prop('disabled', true);
+
+
+			   /* BluePay Create Token	
+				* Encrypts sensitive data, creates Precalculated Tamper Proof Seal and Token
+				* @param {object/string} data (required)- form id (to get data from) of plain js 'payment-form' or jquery $('#payment-form') or...
+				* js object {CARD_ACCOUNT: '4111111111111111', CARD_CVV2: '123', CARD_EXPIRE: '0824'}
+				* @param {function} callback (required) - Name of function to be called after encryption & tokenization complete  
+				* @param {object} debug @property {boolean} (optional) - used with form id...
+				* Shows 2 input fields to displays values before and after encryption when form id is passed. 
+				* Also shows console warnings if data-encrypted-name is not a valid api name				   		   
+				*	    
+				* BluePay.createToken(data, callback):
+				*
+				* ======================================== */
+				BluePay.createToken($form, callback);
+				// BluePay.createToken('payment-form', callback, {debug: true});
+				// BluePay.createToken({CARD_ACCOUNT: '4111111111111111', CARD_CVV2: '123', CARD_EXPIRE: '0828', NAME1: 'John', NAME2: 'Doe'}, callback);
+				// BluePay.createToken({PAYMENT_TYPE: 'ACH', ACH_ACCOUNT:'123456789', ACH_ROUTING: '123123123', NAME1: 'Jane', NAME2: 'Doe'}, callback);
+			
+
+			});
+		});
+
+	</script>	
+</body>
+</html>

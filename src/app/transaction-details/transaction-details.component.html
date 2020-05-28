@@ -1,0 +1,33 @@
+<h2>Transaction Details</h2> 
+
+<hr/>
+<div >
+ <!-- <div *ngIf="data">  
+  <div >
+    <label><b>TransactionId: </b></label> {{data.Data.transactionId}}
+  </div>
+  <div >
+    <label><b>Auth Code: </b></label> {{data.Data.authCode}}
+  </div>
+  <div >
+    <label><b>Status: </b></label> {{data.Data.avs}}
+  </div>
+</div> -->
+   <div>
+
+    <div *ngIf="invoice">
+    <label><b>TransactionId: </b></label> {{invoice}}
+  </div>
+  <div *ngIf="authCode">
+    <label><b>Auth Code: </b></label> {{authCode}}
+  </div>
+  <div *ngIf="status">
+    <label><b>Status : </b></label> {{status}}
+  </div>
+  <div *ngIf="token">
+    <label><b>Token : </b></label> {{token}}
+  </div>
+</div>
+<div class="container"><button  (click)="goToHomePage()" class="btn btn-success">Go to Home Page</button> 
+<br>
+<br>
